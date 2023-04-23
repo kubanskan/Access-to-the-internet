@@ -1,0 +1,243 @@
+---
+title: "How Much of the World Has Access to the Internet ?"
+output: pdf_document
+---
+
+\includegraphics{1.jpg}
+
+
+# This report presents the state of internet accessibility across the world by answering these specific questions:
+
+1. What are the top 5 countries with the highest internet use in 2019?
+2. How many people had internet access in those countries in 2019?
+3. What are the top 5 countries with the highest internet use for each of the following              regions: Middle East & North Africa, Latin America & Caribbean, East Asia & Pacific,              Europe & Central Asia?
+4. Creating a visualization for those four regions.
+5. What is the correlation between internet usage (population share) and broadband                   subscriptions in 2019?
+6. Summarize my findings
+
+
+
+
+# The data
+
+
+#### internet
+- "Entity" - The name of the country, region, or group.
+- "Code" - Unique id for the country (null for other entities).
+- "Year" - Year from 1990 to 2019.
+- "Internet_usage" -  The share of the entity's population who have used the internet in the last three months.
+
+#### people
+- "Entity" - The name of the country, region, or group.
+- "Code" - Unique id for the country (null for other entities).
+- "Year" - Year from 1990 to 2020.
+- "Users" - The number of people who have used the internet in the last three months for that country, region, or group.
+
+#### broadband
+- "Entity" - The name of the country, region, or group.
+- "Code" - Unique id for the country (null for other entities).
+- "Year" - Year from 1998 to 2020.
+- "Broadband_Subscriptions" - The number of fixed subscriptions to high-speed internet at downstream speeds >= 256 kbit/s for that country, region, or group.
+
+
+
+```{r, warning=FALSE,message=FALSE}
+
+library(readr)
+library(dplyr)
+library(DescTools)
+library(patchwork)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(stats)
+
+
+internet <- read_csv("data/internet.csv")%>%
+            distinct()%>%
+            drop_na()
+
+people  <- read_csv("data/people.csv")%>%
+           distinct()%>%
+           drop_na()
+
+
+broadband <- read_csv("data/broadband.csv")%>%
+             distinct()%>%
+             drop_na()
+
+```
+
+
+
+
+
+
+## 1. What are the top 5 countries with the highest internet use in 2019?
+
+```{r, warning=FALSE,message=FALSE}
+  countries_with_highest_use <- internet%>%
+                                group_by( Entity )%>%
+                                filter( Year == 2019 )%>%
+                                arrange( desc( Internet_Usage ) )%>%
+                                mutate( Internet_Usage = paste( round( Internet_Usage, 
+                                        2 ),"%" ), Year = Year )%>%
+                                head(5)%>%
+                                select(-Code,-Year)
+  
+  countries_with_highest_use
+
+```
+
+
+
+
+## 2. How many people had internet access in those countries in 2019?
+```{r, warning=FALSE,message=FALSE}
+    num_of_people <- people%>% 
+                     filter( Year == 2019, Entity %in% 
+                             countries_with_highest_use$Entity )%>%
+                     arrange( desc( Users ) )%>%
+                     select(-Code,-Year)
+
+    num_of_people
+
+    
+    
+    inner_join( countries_with_highest_use ,num_of_people , by=c( "Entity" ) )%>%
+    arrange( desc( Users ) )
+```
+
+## 3. What are the top 5 countries with the highest internet use for each of the following regions: Middle East & North Africa,Latin America & Caribbean, East Asia & Pacific, Europe & Central Asia?
+    
+```{r, warning=FALSE,message=FALSE}
+   our_regions <- c( 'Middle East & North Africa', 'Latin America & Caribbean',
+                      'East Asia & Pacific', 'Europe & Central Asia' )
+    regions <- d.countries%>%
+               select( a3, region )%>%
+               filter( region %in%  our_regions ) 
+
+    internet_with_regions <- inner_join( internet, regions, by = c( "Code" = "a3" ) )
+    
+    
+    
+    #Middle East & North Africa
+    top_Africa <- internet_with_regions%>%
+                  filter( region == "Middle East & North Africa", Year == 2019 )%>%
+                  arrange( desc( Internet_Usage ) )%>%
+                  head(5)
+    
+    top_Africa   
+    
+    
+    #Latin America & Caribbean
+    
+    top_Latin_America <- internet_with_regions%>%
+                         filter( region == 'Latin America & Caribbean', Year == 2019 )%>%
+                         arrange( desc( Internet_Usage ) )%>%
+                         head(5)
+    
+    top_Latin_America
+    
+    #East Asia & Pacific
+    top_East_Asia <- internet_with_regions%>%
+                     filter( region == 'East Asia & Pacific', Year == 2019 )%>%
+                     arrange( desc( Internet_Usage ) )%>%
+                     head(5)
+    
+    top_East_Asia
+    
+
+  
+    
+    #'Europe & Central Asia'
+    
+    top_Europe_Central_Asia <- internet_with_regions%>%
+                               filter( region == 'Europe & Central Asia', Year == 2019 )%>%      
+                               arrange( desc( Internet_Usage ) )%>%
+                               head(5)
+    
+    top_Europe_Central_Asia
+
+```
+
+## 4. Creating a visualization for those four regions
+
+```{r, warning=FALSE,message=FALSE}
+ A <- internet_with_regions%>%
+      filter( Entity %in% top_Africa$Entity )%>%
+      ggplot( aes( Year, Internet_Usage, group=Entity, color=Entity ) )+geom_line()+
+      ggtitle("Internet usage over time Latin America & Caribbean")
+    
+    
+  B <- internet_with_regions%>%
+       filter( Entity %in% top_Latin_America$Entity )%>%
+       ggplot( aes( Year, Internet_Usage, group=Entity, color=Entity ) )+geom_line()+
+       ggtitle( "Internet usage over time Middle East & North Africa" )
+    
+    
+  C <- internet_with_regions%>%
+       filter( Entity %in% top_Europe_Central_Asia$Entity )%>%
+       ggplot( aes( Year, Internet_Usage, group=Entity, color=Entity ) )+geom_line()+
+       ggtitle( "Internet usage over time Europe & Central Asia" )
+    
+    
+  D <- internet_with_regions%>%
+       filter( Entity %in% top_East_Asia$Entity )%>%
+       ggplot( aes( Year, Internet_Usage, group=Entity, color=Entity ) )+geom_line()+
+       ggtitle( "Internet usage over time East Asia & Pacific" )
+    
+    
+    A+B+C+D
+
+```
+
+## 5. What is the correlation between internet usage and broadband  subscriptions in 2019?
+
+
+```{r, warning=FALSE,message=FALSE}
+    internet_with_broadband<-internet%>%
+                             filter(Year == 2019)%>%
+                             inner_join( broadband, by = c("Entity","Year"),
+                             suffix = c( "_internet", "_broadband" ) )
+    cor.test( internet_with_broadband$Internet_Usage, 
+        internet_with_broadband$Broadband_Subscriptions )
+    
+    ggplot(internet_with_broadband,aes( Internet_Usage, Broadband_Subscriptions,
+    size = Internet_Usage ) )+geom_point( alpha = 0.8, color = "lightblue" )+
+    ggtitle("Correlation between internet usage and broadband subscriptions in 2019")
+ 
+```
+
+&nbsp;                                                                                                                                                           
+
+## 6. Summarize my findings
+
+### The top 5 countries with the highest internet use were:
+1. United Arab Emirates 99.15 percent of Internet use and 9133361 users
+2. Denmark 98.05 percent of Internet use and 5682653 users
+3. Kuwait 99.54 percent of Internet use and 4420795 users
+4. Qatar 99.65 percent of Internet use and 2797495 users
+5. Bahrain 99.7 percent of Internet use and 148973 users
+   
+   
+### The top 5 countries with the highest internet use:
+- **Middle East & North Africa**: Bahrain, Qatar, Kuwait, United Arab Emirates,  Saudi Arabia
+- **Latin America & Caribbean**: Costa Rica, Uruguay, Puerto Rico, Mexico, Paraguay
+- **East Asia & Pacific**: South Korea, Brunei, Hong Kong, Singapore, Macao
+- **Europe & Central Asia**: Denmark, Norway, Sweden, Netherlands, Switzerlands
+
+
+### The correlation between internet usage and broadband  subscriptions in 2019
+  Correlation coefficient between internet usage and broadband  subscriptions is ***0.5575181***, which suggests a moderate   positive correlation between the variables.
+    
+  The ***t-value of 5.4971 with 67 degrees of freedom*** indicates a strong difference between the actual and theoretical correlation, and the very small ***p-value of 6.487e-07*** suggests that this difference is highly unlikely to be due to chance.
+  
+  At ***0.05 level of significance, we reject the null hypothesis***, which states that the true correlation between them is equal to 0.
+  
+  
+
+
+
+
+
