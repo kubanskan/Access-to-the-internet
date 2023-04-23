@@ -5,7 +5,7 @@
 
 
 
-### This report presents the state of internet accessibility across the world by answering these specific </br>  questions in *R*:
+### This report presents the state of internet accessibility across the world by </br> answering these specific questions in *R*:
 
 1. What are the top 5 countries with the highest internet use in 2019?
 2. How many people had internet access in those countries in 2019?
